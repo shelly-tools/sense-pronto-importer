@@ -11,15 +11,15 @@
 package main
 
 import (
-    "fmt"
-    "log"
-    "net/http"
-	"net/url"
-	"html/template"
 	"encoding/json"
+	"fmt"
+	"html/template"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
-	"io/ioutil"
 )
 
 var myClient = &http.Client{Timeout: 10 * time.Second}
@@ -32,12 +32,10 @@ func toJSON(m interface{}) string {
 	return strings.ReplaceAll(string(js), ",", ", ")
 }
 
-func listIR (w http.ResponseWriter, r *http.Request) {
+func listIR(w http.ResponseWriter, r *http.Request) {
 	ip := r.URL.Query().Get("ip")
 
-	sense := "http://"
-	sense += ip
-	sense += "/ir/list"
+	sense := "http://" + ip + "/ur/list"
 	req, _ := http.NewRequest("GET", sense, nil)
 	req.Header.Add("cache-control", "no-cache")
 
@@ -49,21 +47,13 @@ func listIR (w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, string(body))
 }
 
-func addIR (w http.ResponseWriter, r *http.Request) {
+func addIR(w http.ResponseWriter, r *http.Request) {
 	ip := r.URL.Query().Get("ip")
 	id := r.URL.Query().Get("id")
 	name := r.URL.Query().Get("name")
 	pronto := r.URL.Query().Get("pronto")
 
-	sense := "http://"
-	sense += ip
-	sense += "/ir/add?id="
-	sense += id
-	sense += "&name="
-	sense += url.QueryEscape(name)
-	sense += "&pronto="
-	sense += pronto
-
+	sense := "http://" + ip + "/ir/add?id=" + id + "&name=" + url.QueryEscape(name) + "&pronto=" + pronto
 	req, _ := http.NewRequest("GET", sense, nil)
 
 	req.Header.Add("cache-control", "no-cache")
@@ -75,22 +65,22 @@ func addIR (w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, string(body))
 }
 
-func tplIndex(w http.ResponseWriter, r *http.Request) {  
-  t, err := template.ParseFiles("index.html")
-    if err != nil {
-        fmt.Println(err)
-    }
-    items := struct {
+func tplIndex(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles("index.html")
+	if err != nil {
+		fmt.Println(err)
+	}
+	items := struct {
 		Shelly string
 	}{
-        Shelly: "IP",
-    }
-    t.Execute(w, items)
+		Shelly: "IP",
+	}
+	t.Execute(w, items)
 }
 
 func main() {
-    http.HandleFunc("/", tplIndex)
+	http.HandleFunc("/", tplIndex)
 	http.HandleFunc("/list", listIR)
 	http.HandleFunc("/add", addIR)
-    log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
