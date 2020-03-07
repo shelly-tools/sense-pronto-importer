@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+		<title>Sense Pronto Converter</title>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+		<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>    
+		<style>
+			#output {
+				word-wrap: break-word;         /* All browsers since IE 5.5+ */
+				overflow-wrap: break-word;     /* Renamed property in CSS3 draft spec */
+				width: 100%;
+			}
+			textarea.materialize-textarea{min-height: 8rem !important;}
+		</style>
+	</head>
+	<body>
+		<nav>
+		<div class="nav-wrapper blue-grey darken-3">
+			<div class="container">
+				<a href="#" class="brand-logo">Shelly Sense IR Pronto code Importer</a>
+			</div>
+		</div>
+	</nav>
+	<div class="container">
+	<br><br>
+	<div>
+		This tool can convert and import IR Pronto HEX code to a Shelly Sense compatible format in order to replace existing IR Codes. Please enter the IP of your Shelly sense device and press the "Connect to Shelly Sense" button. After a few seconds you should see a dropdown with the existing IR codes for your remotes. Just select the button you want to replace and put in the HEX code in the related field.
+		<br><br>
+		If you can't find the related IR code just check <a href="remotecentral.com" target="_blank">remotecentral.com</a>.
+	</div>
+	<div class="input-field col s6">
+          <input name="ip" id="ip" type="text">
+          <label for="ip">Shelly sense IP:</label>
+        </div>
+		 <button class="waves-effect waves-light btn blue" onclick="discoverIR()">Connect to Shelly sense</button>
+		<div class="input-field col s6">
+		<select id="mypanel"></select>
+		
+		</div>
+      <div id="converter" style="display: none;" class="row">
+        <div class="input-field col s12">
+          <textarea rows="5" placeholder="0000 0073 0000 001E 0060 0020 0010 0010 0010 0010 0010 0020 0010 0020 0020 0010 0010 0010 0010 0010 0010 0010 0010 0010 0010 0010 0010 0010 0010 0010 0020 0020 0010 0010 0010 0010 0010 0010 0010 0010 0010 0010 0020 0010 0010 0020 0020 0020 0010 0010 0010 0010 0010 0010 0010 0010 0020 0010 0010 0020 0010 0010 0010 0E10" id="input" class="materialize-textarea"></textarea>
+          <label for="input">IR Pronto Code</label>
+        </div>
+		<div id="output"></div>
+		<button class="waves-effect waves-light btn red" onclick="convertProntoCode()">Save Pronto Code to Shelly-Sense</button>
+      </div>
+  </div>
+<script>
+
+	var SenseLink;
+	var SenseKey;
+	var SenseUpdateCommand;
+
+	function discoverIR() {
+		getip = document.getElementById('ip').value;
+		$.getJSON('list?ip=' + getip + '', function(data) {
+			var add = '<option>Select IR button</option>';	
+			$.each( data, function( key, value ) {
+				add = add + '<option value="' + value[0] + '">' + value[1] + '</option>';
+			});
+			$("#mypanel").html(add);
+			$('select').formSelect();
+			$('#converter').show();
+			SenseLink = 'add?ip=' + getip + '/ir/add';
+		});
+	}
+	
+	function convertProntoCode() {
+	var prontohex = document.getElementById("input").value;
+	var prontohexcleaned = prontohex.replace(/ /g, '');
+	prontohexcleaned = prontohexcleaned.replace(/[\r\n\x0B\x0C\u0085\u2028\u2029]+/g);
+	var prontobin = hex2bin(prontohexcleaned);
+	var prontobase = btoa(prontobin);
+	
+	//document.getElementById("output").innerHTML = prontobase;
+	SenseUpdateCommand = SenseLink + SenseKey + prontobase;
+
+	$.getJSON(SenseUpdateCommand, function(json) {
+			 console.log( "JSON Data: " + json.result );
+			 if(json.result == 'OK')
+			 {
+				discoverIR();
+				//$("#output").html('<span class="green-text">Sense Response: '+  json.result + ' - IR Code has been updated</span>');
+				 M.toast({html: '<span class="green white-text"><b>Sense Response: '+  json.result + ' - IR Code has been updated</b></span>', classes: 'green'})
+				document.getElementById('input').value = "";
+				
+			}
+			else
+				$("#output").html('<span class="red-text">Sense Response: '+  json.result + '</span>');
+	});
+	
+  }
+
+function hex2bin(hex) {
+    var bytes = [], str;
+    for(var i=0; i< hex.length-1; i+=2)
+        bytes.push(parseInt(hex.substr(i, 2), 16));
+
+    return String.fromCharCode.apply(String, bytes);    
+}
+
+$( "select" )
+  .change(function () {
+    var str = "";
+	var strval= "";
+    $( "select option:selected" ).each(function() {
+      str += $( this ).text();
+	  strval += $( this ).val();
+    });
+	SenseKey = '&id=' + strval + '&name=' + str + '&pronto=';
+  })
+  .change();
+</script>
+</body>
+</html>
